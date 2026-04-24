@@ -7,8 +7,10 @@ import {
   Network, 
   Terminal,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard
 } from 'lucide-react';
+import PayTab          from './tabs/PayTab';
 import OverviewTab     from './tabs/OverviewTab';
 import TransactionsTab from './tabs/TransactionsTab';
 import ModelsTab       from './tabs/ModelsTab';
@@ -17,6 +19,7 @@ import NetworkTab      from './tabs/NetworkTab';
 import SimulatorTab    from './tabs/SimulatorTab';
 import { initialModels, initialPatterns, getShapFactors, getShapFromReasons } from './data';
 import { useBackend } from './hooks/useBackend';
+import { updateThresholds } from './api';
 import type { Transaction, ModelScore, FraudPattern, ShapFactor, AppStats, TabId, TxnType } from './types';
 import type { BackendDecision } from './api';
 
@@ -24,6 +27,7 @@ const rand    = (min: number, max: number) => Math.random() * (max - min) + min;
 const randInt = (min: number, max: number) => Math.floor(rand(min, max));
 
 const TABS = [
+  { id: 'pay',          label: 'Pay',                icon: <CreditCard size={16} /> },
   { id: 'overview',     label: 'Overview',           icon: <LayoutDashboard size={16} /> },
   { id: 'transactions', label: 'Live Transactions',  icon: <List size={16} /> },
   { id: 'models',       label: 'Model Scores',       icon: <BarChart2 size={16} /> },
@@ -33,12 +37,13 @@ const TABS = [
 ];
 
 const App: React.FC = () => {
-  const [activeTab,   setActiveTab]   = useState<TabId>('overview');
+  const [activeTab,   setActiveTab]   = useState<TabId>('pay');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [models,       setModels]       = useState<ModelScore[]>(initialModels);
   const [patterns,     setPatterns]     = useState<FraudPattern[]>(initialPatterns);
   const [shapFactors,  setShapFactors]  = useState<ShapFactor[]>(getShapFactors('ALLOW'));
   const [thresholds,   setThresholds]   = useState({ friction: 0.30, block: 0.70 });
+  const [lastInjectedTxn, setLastInjectedTxn] = useState<Transaction | null>(null);
   const [stats,        setStats]        = useState<AppStats>({ total: 1247, blocked: 23, friction: 41, prauc: 0.913 });
   const [tps,          setTps]          = useState(24);
   const [latency,      setLatency]      = useState(42);
@@ -80,6 +85,7 @@ const App: React.FC = () => {
       const next = [txn, ...prev];
       return next.slice(0, 100);
     });
+    setLastInjectedTxn(txn);
 
     setStats(prev => ({
       ...prev,
@@ -133,19 +139,44 @@ const App: React.FC = () => {
     }
   }, [backend]);
 
+  // Listen to recentTxns updates
+  useEffect(() => {
+    if (backend.isConnected && backend.recentTxns.length > 0) {
+      setTransactions(prev => {
+        const prevMap = new Map(prev.map(t => [t.id, t]));
+        const merged = backend.recentTxns.map(rt => {
+          const pt = prevMap.get(rt.id);
+          if (pt) {
+            return { 
+              ...rt, 
+              user: pt.user || rt.user, 
+              payee: pt.payee || rt.payee, 
+              amount: pt.amount || rt.amount,
+              remark: pt.remark || rt.remark 
+            };
+          }
+          return rt;
+        });
+        return merged;
+      });
+    }
+  }, [backend.recentTxns, backend.isConnected]);
+
   // Seed initial data
   useEffect(() => {
+    if (backend.isConnected || backend.checking) return;
     const seed: TxnType[] = ['legit','legit','legit','legit','refund','legit','legit','qr_swap','legit','legit','sim_swap','legit'];
     seed.forEach(t => addTransaction(t));
-  }, []);
+  }, [backend.isConnected, backend.checking, addTransaction]);
 
   // Live feed interval
   useEffect(() => {
+    if (backend.isConnected) return;
     const id = setInterval(() => {
       if (Math.random() > 0.55) addTransaction('random');
     }, 2200);
     return () => clearInterval(id);
-  }, [addTransaction]);
+  }, [addTransaction, backend.isConnected]);
 
   // TPS jitter
   useEffect(() => {
@@ -159,7 +190,13 @@ const App: React.FC = () => {
   }, [backend.isConnected]);
 
   const handleThresholdChange = (key: 'friction' | 'block', val: number) => {
-    setThresholds(prev => ({ ...prev, [key]: val }));
+    setThresholds(prev => {
+      const next = { ...prev, [key]: val };
+      if (backend.isConnected) {
+        updateThresholds(next.friction, next.block).catch(() => {});
+      }
+      return next;
+    });
   };
 
   const lastResult = transactions[0] ?? null;
@@ -254,6 +291,9 @@ const App: React.FC = () => {
 
         {/* ── Tab Content ── */}
         <main>
+          {activeTab === 'pay' && (
+            <PayTab onViewDetails={() => setActiveTab('transactions')} />
+          )}
           {activeTab === 'overview' && (
             <OverviewTab
               stats={stats}
@@ -269,18 +309,18 @@ const App: React.FC = () => {
             <TransactionsTab transactions={transactions} />
           )}
           {activeTab === 'models' && (
-            <ModelsTab models={models} />
+            <ModelsTab models={models} transactions={transactions} />
           )}
           {activeTab === 'patterns' && (
             <PatternsTab patterns={patterns} transactions={transactions} />
           )}
           {activeTab === 'network' && (
-            <NetworkTab />
+            <NetworkTab transactions={transactions} />
           )}
           {activeTab === 'simulator' && (
             <SimulatorTab
               onInject={addTransaction}
-              lastResult={lastResult}
+              lastResult={lastInjectedTxn}
               lastDecision={lastDecision}
               isConnected={backend.isConnected}
             />

@@ -2,8 +2,21 @@
 
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Sora', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Brand Colors */
+  --color-primary:        #00D46A;
+  --color-primary-dim:    #00A854;
+  --color-allow:          #00D46A;
+  --color-friction:       #F5A623;
+  --color-block:          #FF4757;
+  --color-allow-glow:     rgba(0, 212, 106, 0.2);
+  --color-friction-glow:  rgba(245, 166, 35, 0.2);
+  --color-block-glow:     rgba(255, 71, 87, 0.2);
 }
+
+.font-display { font-family: var(--font-display); }
 
 * { box-sizing: border-box; }
 
@@ -117,4 +130,34 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 @keyframes spinRing {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+/* ── Payment Flow Utilities ── */
+.glow-allow { box-shadow: 0 0 20px var(--color-allow-glow); }
+.glow-friction { box-shadow: 0 0 20px var(--color-friction-glow); }
+.glow-block { box-shadow: 0 0 20px var(--color-block-glow); }
+.mesh-gradient {
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(0, 212, 106, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0, 168, 84, 0.05) 0%, transparent 50%);
+}
+
+@keyframes draw-check {
+  0%   { stroke-dashoffset: 50; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes pulse-ring-expand {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.animate-draw-check {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: draw-check 0.5s ease-out 0.2s forwards;
+}
+
+.animate-pulse-ring-expand {
+  animation: pulse-ring-expand 1.5s ease-out infinite;
 }

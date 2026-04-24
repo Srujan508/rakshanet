@@ -48,7 +48,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ patterns, transactions }) => 
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {patterns.map(p => {
-            const pct = (p.count / total) * 100;
+            const pct = total === 0 ? 0 : (p.count / total) * 100;
             return (
               <div
                 key={p.name}

@@ -138,6 +138,12 @@ async def score_transaction(features: dict, remarks: str = "") -> dict:
         "txn_id": txn_id,
         "user_vpa": str(features.get("user_vpa", "")),
         "payee_vpa": str(features.get("payee_vpa", "")),
+        "amount": features.get("amount", 0.0),
+        "currency": features.get("currency", "INR"),
+        "timestamp": features.get("timestamp", ""),
+        "device_id": features.get("device_id", ""),
+        "remarks": features.get("remarks", remarks),
+        "app_version": features.get("app_version", "4.2.1"),
         "score": round(final_score, 3),
         "decision": decision,
         "reasons": reasons,
@@ -197,6 +203,20 @@ async def score_direct(request: dict):
     result = await score_transaction(features, remarks=remarks)
     await persist_and_publish_decision(result)
     return result
+
+@app.post("/config/thresholds")
+async def update_thresholds(request: dict):
+    global block_threshold, friction_threshold
+    if "block" in request:
+        block_threshold = float(request["block"])
+    if "friction" in request:
+        friction_threshold = float(request["friction"])
+    print(f"[decision-engine] Thresholds updated via API: block={block_threshold:.2f}, friction={friction_threshold:.2f}")
+    return {
+        "status": "ok",
+        "block_threshold": block_threshold,
+        "friction_threshold": friction_threshold
+    }
 
 async def consume_and_decide():
     for attempt in range(20):

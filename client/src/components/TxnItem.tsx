@@ -20,16 +20,18 @@ interface TxnItemProps {
   txn: Transaction;
   compact?: boolean;
   animate?: boolean;
+  onClick?: () => void;
 }
 
-const TxnItem: React.FC<TxnItemProps> = ({ txn, compact, animate }) => {
+const TxnItem: React.FC<TxnItemProps> = ({ txn, compact, animate, onClick }) => {
   const sc = scoreConfig(txn.score);
   const dc = decisionConfig(txn.decision);
 
   return (
     <div
+      onClick={onClick}
       className={`grid items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.05] bg-white/[0.02]
-                  hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 cursor-default
+                  hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 ${onClick ? 'cursor-pointer' : 'cursor-default'}
                   ${animate ? 'slide-in' : ''}`}
       style={{ gridTemplateColumns: compact ? 'auto 1fr auto auto' : 'auto 1fr auto auto' }}
     >

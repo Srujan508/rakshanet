@@ -14,7 +14,7 @@ const DASHBOARD        = '/dash';
 
 // ── Types matching backend response shapes ──
 
-export interface BackendDecision {
+export interface DecisionResponse {
   txn_id: string;
   user_vpa: string;
   payee_vpa: string;
@@ -31,6 +31,9 @@ export interface BackendDecision {
     nlp: number;
   };
 }
+
+// Alias for backward compatibility
+export type BackendDecision = DecisionResponse;
 
 export interface BackendOverview {
   window_minutes: number;
@@ -61,6 +64,9 @@ export interface BackendRecentRow {
   pattern: string | null;
   latency_ms: number;
   timestamp: string;
+  user_vpa?: string;
+  payee_vpa?: string;
+  amount?: number;
 }
 
 export interface TransactionPayload {
@@ -97,6 +103,17 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
     return resp;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+function parsePythonStringifiedJson(str: any): any {
+  if (typeof str !== 'string') return str;
+  try {
+    const jsonStr = str.replace(/'/g, '"').replace(/True/g, 'true').replace(/False/g, 'false');
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    console.error('[API] fetchRecent error:', err);
+    return [];
   }
 }
 
@@ -186,6 +203,29 @@ export async function ingestTransaction(payload: TransactionPayload): Promise<{ 
 }
 
 /**
+ * Fetch a decision by ID (polling).
+ */
+export async function fetchDecision(txnId: string): Promise<DecisionResponse> {
+  const resp = await fetchWithTimeout(`${DECISION_ENGINE}/decision/${txnId}`);
+  if (!resp.ok) throw new Error(`Decision Engine returned ${resp.status}`);
+  const data = await resp.json();
+  
+  if (data.error) return data; // Return error object for polling loop
+
+  return {
+    txn_id: data.txn_id,
+    score: data.score ? parseFloat(data.score) : 0,
+    decision: data.decision as 'ALLOW' | 'FRICTION' | 'BLOCK',
+    reasons: parsePythonStringifiedJson(data.reasons) || [],
+    pattern: data.pattern === 'None' || !data.pattern ? null : data.pattern,
+    latency_ms: data.latency_ms ? parseInt(data.latency_ms, 10) : 0,
+    individual_scores: parsePythonStringifiedJson(data.individual_scores) || {
+      rule: 0.1, xgboost: 0.1, gnn: 0.1, lstm: 0.1, nlp: 0.1
+    }
+  } as DecisionResponse;
+}
+
+/**
  * Fetch dashboard overview stats.
  */
 export async function fetchOverview(minutes = 60): Promise<BackendOverview> {
@@ -204,6 +244,23 @@ export async function fetchRecent(limit = 25): Promise<BackendRecentRow[]> {
 }
 
 /**
+ * Update thresholds dynamically.
+ */
+export async function updateThresholds(friction: number, block: number): Promise<boolean> {
+  try {
+    const resp = await fetchWithTimeout(`${DECISION_ENGINE}/config/thresholds`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friction, block }),
+    });
+    return resp.ok;
+  } catch (err) {
+    console.error('[API] updateThresholds error:', err);
+    return false;
+  }
+}
+
+/**
  * Fetch decision timeseries data.
  */
 export async function fetchTimeseries(minutes = 60) {
@@ -211,3 +268,12 @@ export async function fetchTimeseries(minutes = 60) {
   if (!resp.ok) throw new Error(`Dashboard timeseries returned ${resp.status}`);
   return resp.json();
 }
+
+export const api = {
+  submitTransaction: ingestTransaction,
+  getDecision: fetchDecision,
+  getOverview: fetchOverview,
+  getRecent: fetchRecent,
+  getHealth: checkBackendConnectivity,
+  updateThresholds: updateThresholds,
+};

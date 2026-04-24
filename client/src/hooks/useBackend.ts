@@ -105,9 +105,9 @@ export function useBackend(): BackendState {
         if (cancelled) return;
         const mapped: Transaction[] = rows.map((row, _i) => ({
           id: row.txn_id,
-          user: '',
-          payee: '',
-          amount: 0,
+          user: row.user_vpa || '',
+          payee: row.payee_vpa || '',
+          amount: row.amount || 0,
           score: row.score,
           decision: row.decision,
           pattern: row.pattern,

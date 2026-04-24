@@ -150,9 +150,11 @@ def overview(minutes: int = Query(default=60, ge=1, le=1440)) -> dict[str, Any]:
 def recent(limit: int = Query(default=25, ge=1, le=200)) -> list[dict[str, Any]]:
     rows = _query_all(
         """
-        SELECT txn_id, score, decision, reasons, pattern, latency_ms, timestamp
-        FROM decisions
-        ORDER BY timestamp DESC
+        SELECT d.txn_id, d.score, d.decision, d.reasons, d.pattern, d.latency_ms, d.timestamp,
+               t.user_vpa, t.payee_vpa, t.amount
+        FROM decisions d
+        LEFT JOIN transactions t ON d.txn_id = t.txn_id
+        ORDER BY d.timestamp DESC
         LIMIT %s
         """,
         (limit,),

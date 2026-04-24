@@ -7,7 +7,7 @@ from fastapi import FastAPI
 app = FastAPI(title="Ensemble Service")
 
 model = None
-explainer = None  # reserved for future ensemble-level SHAP
+explainer = None  # reserved for future ensemblelevel SHAP
 
 FEATURE_NAMES = [
     "rule_score", "xgb_score", "gnn_score", "lstm_score", "nlp_score",

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Chart, LineElement, PointElement, LinearScale, CategoryScale,
   BarElement, BarController, LineController, Filler, Tooltip, Legend
@@ -12,7 +12,7 @@ import {
   Target
 } from 'lucide-react';
 import { Panel, PanelHeader } from '../components/Panel';
-import type { ModelScore } from '../types';
+import type { ModelScore, Transaction } from '../types';
 
 Chart.register(LineElement, PointElement, LinearScale, CategoryScale, BarElement, BarController, LineController, Filler, Tooltip, Legend);
 
@@ -47,13 +47,57 @@ const CHART_OPTIONS_BASE = {
 
 interface ModelsTabProps {
   models: ModelScore[];
+  transactions?: Transaction[];
 }
 
-const ModelsTab: React.FC<ModelsTabProps> = ({ models: _models }) => {
+const INITIAL_METRICS = [
+  { name: 'Rule Engine', prauc: 0.62, precision: 0.58, recall: 0.72, f1: 0.64, color: '#94a3b8' },
+  { name: 'XGBoost',    prauc: 0.84, precision: 0.79, recall: 0.81, f1: 0.80, color: '#3b82f6' },
+  { name: 'GNN',        prauc: 0.71, precision: 0.68, recall: 0.74, f1: 0.71, color: '#f97316' },
+  { name: 'LSTM',       prauc: 0.68, precision: 0.65, recall: 0.70, f1: 0.67, color: '#8b5cf6' },
+  { name: 'NLP',        prauc: 0.75, precision: 0.72, recall: 0.77, f1: 0.74, color: '#06b6d4' },
+  { name: 'Ensemble',   prauc: 0.91, precision: 0.88, recall: 0.86, f1: 0.87, color: '#10b981' },
+];
+
+const INITIAL_CURVES = {
+  ensemble: [1.0, 0.95, 0.92, 0.88, 0.85, 0.81, 0.76, 0.70, 0.62, 0.50, 0.35],
+  xgboost:  [1.0, 0.90, 0.85, 0.80, 0.75, 0.70, 0.64, 0.57, 0.48, 0.38, 0.25],
+  gnn:      [1.0, 0.88, 0.82, 0.76, 0.70, 0.63, 0.55, 0.47, 0.38, 0.28, 0.18],
+};
+
+const ModelsTab: React.FC<ModelsTabProps> = ({ models: _models, transactions = [] }) => {
   const prRef  = useRef<HTMLCanvasElement>(null);
   const barRef = useRef<HTMLCanvasElement>(null);
   const prChart  = useRef<Chart | null>(null);
   const barChart = useRef<Chart | null>(null);
+
+  const [metrics, setMetrics] = useState(INITIAL_METRICS);
+  const [curves, setCurves] = useState(INITIAL_CURVES);
+
+  // Dynamic jitter simulation
+  useEffect(() => {
+    if (!transactions.length) return;
+    
+    // Apply micro-jitter to simulate real-time training drift
+    const jitter = (val: number, maxAmount = 0.005) => {
+      const offset = (Math.random() - 0.5) * maxAmount;
+      return Math.min(0.99, Math.max(0.01, val + offset));
+    };
+
+    setMetrics(prev => prev.map(m => ({
+      ...m,
+      prauc: jitter(m.prauc),
+      precision: jitter(m.precision),
+      recall: jitter(m.recall),
+      f1: jitter(m.f1),
+    })));
+
+    setCurves(prev => ({
+      ensemble: prev.ensemble.map(v => jitter(v, 0.002)),
+      xgboost: prev.xgboost.map(v => jitter(v, 0.002)),
+      gnn: prev.gnn.map(v => jitter(v, 0.002)),
+    }));
+  }, [transactions]);
 
   useEffect(() => {
     if (!prRef.current || !barRef.current) return;
@@ -126,16 +170,21 @@ const ModelsTab: React.FC<ModelsTabProps> = ({ models: _models }) => {
       prChart.current?.destroy();
       barChart.current?.destroy();
     };
-  }, []);
+  }, []); // Initialize once
 
-  const MODEL_METRICS = [
-    { name: 'Rule Engine', prauc: 0.62, precision: 0.58, recall: 0.72, f1: 0.64, color: '#94a3b8' },
-    { name: 'XGBoost',    prauc: 0.84, precision: 0.79, recall: 0.81, f1: 0.80, color: '#3b82f6' },
-    { name: 'GNN',        prauc: 0.71, precision: 0.68, recall: 0.74, f1: 0.71, color: '#f97316' },
-    { name: 'LSTM',       prauc: 0.68, precision: 0.65, recall: 0.70, f1: 0.67, color: '#8b5cf6' },
-    { name: 'NLP',        prauc: 0.75, precision: 0.72, recall: 0.77, f1: 0.74, color: '#06b6d4' },
-    { name: 'Ensemble',   prauc: 0.91, precision: 0.88, recall: 0.86, f1: 0.87, color: '#10b981' },
-  ];
+  // Update chart data smoothly
+  useEffect(() => {
+    if (prChart.current) {
+      prChart.current.data.datasets[0].data = curves.ensemble;
+      prChart.current.data.datasets[1].data = curves.xgboost;
+      prChart.current.data.datasets[2].data = curves.gnn;
+      prChart.current.update('none');
+    }
+    if (barChart.current) {
+      barChart.current.data.datasets[0].data = metrics.map(m => m.prauc);
+      barChart.current.update('none');
+    }
+  }, [curves, metrics]);
 
   return (
     <div className="space-y-5 fade-up">
@@ -167,7 +216,7 @@ const ModelsTab: React.FC<ModelsTabProps> = ({ models: _models }) => {
               </tr>
             </thead>
             <tbody>
-              {MODEL_METRICS.map((m) => (
+              {metrics.map((m) => (
                 <tr key={m.name} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">

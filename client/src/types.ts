@@ -52,5 +52,5 @@ export interface AppStats {
   prauc: number;
 }
 
-export type TabId = 'overview' | 'transactions' | 'models' | 'patterns' | 'network' | 'simulator';
+export type TabId = 'pay' | 'overview' | 'transactions' | 'models' | 'patterns' | 'network' | 'simulator';
 export type TxnType = 'random' | 'legit' | 'refund' | 'qr_swap' | 'sim_swap' | 'mule' | 'collect';
