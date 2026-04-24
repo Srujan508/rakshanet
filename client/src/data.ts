@@ -290,11 +290,11 @@ export const initialModels: ModelScore[] = [
 ];
 
 export const initialPatterns: FraudPattern[] = [
-  { name: 'REFUND SCAM',      icon: 'ShieldAlert', count: 12, color: '#f43f5e', desc: 'Fake refund processing fee requests' },
-  { name: 'QR SWAP',          icon: 'QrCode', count: 8,  color: '#f59e0b', desc: 'Replaced QR codes at merchant points' },
+  { name: 'REFUND SCAM',      icon: 'ShieldAlert', count: 0, color: '#f43f5e', desc: 'Fake refund processing fee requests' },
+  { name: 'QR SWAP',          icon: 'QrCode', count: 0,  color: '#f59e0b', desc: 'Replaced QR codes at merchant points' },
   { name: 'SIM SWAP BURST',   icon: 'Smartphone', count: 0,  color: '#8b5cf6', desc: 'Sudden high-value transfers post SIM change' },
-  { name: 'MULE NETWORK',     icon: 'Network', count: 5,  color: '#f43f5e', desc: 'Layered accounts laundering funds' },
-  { name: 'COLLECT REQUEST',  icon: 'ArrowDownCircle', count: 7,  color: '#f59e0b', desc: 'Fraudulent collect/pull payment requests' },
+  { name: 'MULE NETWORK',     icon: 'Network', count: 0,  color: '#f43f5e', desc: 'Layered accounts laundering funds' },
+  { name: 'COLLECT REQUEST',  icon: 'ArrowDownCircle', count: 0,  color: '#f59e0b', desc: 'Fraudulent collect/pull payment requests' },
   { name: 'ACCOUNT TAKEOVER', icon: 'UserX', count: 0,  color: '#06b6d4', desc: 'Credential stuffing & session hijack' },
 ];
 

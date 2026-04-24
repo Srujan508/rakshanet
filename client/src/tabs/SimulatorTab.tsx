@@ -245,6 +245,8 @@ const SimulatorTab: React.FC<SimulatorTabProps> = ({ onInject, lastResult, lastD
                     { label: 'Amount',  value: `₹${lastResult.amount.toLocaleString('en-IN')}` },
                     { label: 'Pattern', value: lastResult.pattern ?? 'None' },
                     { label: 'Latency', value: `${lastResult.latency}ms` },
+                    { label: 'Tap Pressure', value: 'N/A' },
+                    { label: 'PIN Latency', value: 'N/A' },
                   ].map(row => (
                     <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-white/[0.04]">
                       <span className="text-[11px] text-slate-500">{row.label}</span>

@@ -44,7 +44,7 @@ const App: React.FC = () => {
   const [shapFactors,  setShapFactors]  = useState<ShapFactor[]>(getShapFactors('ALLOW'));
   const [thresholds,   setThresholds]   = useState({ friction: 0.30, block: 0.70 });
   const [lastInjectedTxn, setLastInjectedTxn] = useState<Transaction | null>(null);
-  const [stats,        setStats]        = useState<AppStats>({ total: 1247, blocked: 23, friction: 41, prauc: 0.913 });
+  const [stats,        setStats]        = useState<AppStats>({ total: 0, blocked: 0, friction: 0, prauc: 0.913 });
   const [tps,          setTps]          = useState(24);
   const [latency,      setLatency]      = useState(42);
   const [lastDecision, setLastDecision] = useState<BackendDecision | null>(null);
