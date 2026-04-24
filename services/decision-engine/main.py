@@ -77,7 +77,7 @@ async def get_decision(txn_id: str):
         return {"error": "not found", "txn_id": txn_id}
     return result
 
-async def call_model(client, url, payload, timeout=0.5):
+async def call_model(client, url, payload, timeout=5.0):
     try:
         resp = await client.post(f"{url}/score", json=payload, timeout=timeout)
         data = resp.json()
@@ -114,7 +114,7 @@ async def score_transaction(features: dict, remarks: str = "") -> dict:
                 "features": features,
                 "scores": [rule_score, xgb_score, gnn_score, lstm_score, nlp_score],
             }
-            resp = await client.post(f"{ENSEMBLE_URL}/predict", json=ensemble_payload, timeout=0.5)
+            resp = await client.post(f"{ENSEMBLE_URL}/predict", json=ensemble_payload, timeout=5.0)
             ensemble_data = resp.json()
             final_score = float(ensemble_data.get("score", 0.0))
             reasons = ensemble_data.get("reasons", [])

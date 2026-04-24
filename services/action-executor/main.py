@@ -41,7 +41,7 @@ async def log_decision(decision: dict):
                 decision["txn_id"],
                 decision.get("user_vpa", ""),
                 decision.get("payee_vpa", ""),
-                float(decision.get("score", 0)),
+                float(decision.get("amount", 0)),
                 datetime.utcnow(),
             )
 
